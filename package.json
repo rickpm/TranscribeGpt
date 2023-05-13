@@ -1,0 +1,24 @@
+{
+  "name": "transcribe",
+  "version": "1.0.0",
+  "description": "aws transcribe",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "aws-sdk": "^2.1377.0",
+    "axios": "^1.4.0",
+    "dotenv": "^16.0.3",
+    "express": "^4.18.2",
+    "luxon": "^3.3.0",
+    "multer": "^1.4.5-lts.1",
+    "node-microphone": "^0.1.6",
+    "node-record-lpcm16": "^1.0.1",
+    "opn": "^6.0.0",
+    "record": "^0.2.0",
+    "socket.io": "^4.6.1"
+  }
+}

@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Audio Recording and Upload</title>
+  </head>
+
+  <body>
+    <h1>Audio Recording and Upload to S3 Bucket</h1>
+    <button id="enable-microphone">Enable Microphone</button>
+    <button id="disable-microphone" disabled>Disable Microphone</button>
+    <button id="start-recording" disabled>Start Recording</button>
+    <button id="stop-recording" disabled>Stop Recording</button>
+    <p id="transcript"></p>
+    <br>
+    <div id="responseContainer"></div>
+
+    <script src="https://cdn.webrtc-experiment.com/RecordRTC.js"></script>
+    <script>
+      let enableMicrophoneBtn = document.getElementById("enable-microphone");
+      let disableMicrophoneBtn = document.getElementById("disable-microphone");
+      let startRecordingBtn = document.getElementById("start-recording");
+      let stopRecordingBtn = document.getElementById("stop-recording");
+      let recorder;
+      let audioStream;
+
+      enableMicrophoneBtn.addEventListener("click", enableMicrophone);
+
+      function enableMicrophone() {
+        navigator.mediaDevices
+          .getUserMedia({ audio: true })
+          .then(function (stream) {
+            audioStream = stream;
+            enableMicrophoneBtn.disabled = true;
+            disableMicrophoneBtn.disabled = false;
+            startRecordingBtn.disabled = false;
+            console.log("Microphone enabled");
+          })
+          .catch(function (err) {
+            console.error("Error enabling microphone", err);
+          });
+      }
+
+      disableMicrophoneBtn.addEventListener("click", disableMicrophone);
+
+      function disableMicrophone() {
+        audioStream.getTracks().forEach((track) => track.stop());
+        enableMicrophoneBtn.disabled = false;
+        disableMicrophoneBtn.disabled = true;
+        startRecordingBtn.disabled = true;
+        stopRecordingBtn.disabled = true;
+        console.log("Microphone disabled");
+      }
+
+      startRecordingBtn.addEventListener("click", startRecording);
+
+      function startRecording() {
+        navigator.mediaDevices
+          .getUserMedia({ audio: true })
+          .then(function (stream) {
+            audioStream = stream;
+            recorder = new RecordRTC(stream, {
+              type: "audio",
+              recorderType: RecordRTC.StereoAudioRecorder, // force for all browsers
+              numberOfAudioChannels: 2,
+            });
+            recorder.startRecording();
+            startRecordingBtn.disabled = true;
+            stopRecordingBtn.disabled = false;
+            console.log("Recording started");
+          })
+          .catch(function (err) {
+            console.error("Error starting recording", err);
+          });
+      }
+
+      stopRecordingBtn.addEventListener("click", stopRecording);
+
+      function stopRecording() {
+        recorder.stopRecording(function () {
+          let blob = recorder.getBlob();
+          uploadToS3(blob);
+          recorder.reset();
+          startRecordingBtn.disabled = false;
+          stopRecordingBtn.disabled = true;
+          console.log("Recording stopped");
+        });
+      }
+
+      function uploadToS3(blob) {
+        const fileName = "audio" + Date.now() + ".wav";
+        const formData = new FormData();
+        formData.append("file", blob, fileName);
+
+        fetch("/upload", {
+          method: "POST",
+          body: formData,
+        })
+          .then(function (response) {
+            console.log("File uploaded successfully");
+            waitForTranscriptResult(fileName);
+          })
+          .catch(function (error) {
+            console.error("Error uploading file", error);
+          });
+      }
+
+      function waitForTranscriptResult(
+        fileName,
+        retries = 3,
+        interval = 15000
+      ) {
+        const transcriptFileName = fileName.replace(".wav", ".txt");
+        const url = "/transcripts/" + transcriptFileName;
+
+        let retryCount = 0;
+
+        const fetchTranscript = () => {
+          fetch(url)
+            .then(function (response) {
+              if (response.ok) {
+                return response.text();
+              } else {
+                throw new Error("Network response was not OK");
+              }
+            })
+            .then((result) => {
+              //console.log("Transcript availability:", result);
+              // Process the result as needed
+              const cleanURL = extractURLWithoutQueryParams(result);
+              console.log("Clean URL:", cleanURL);
+              getTranscriptData(cleanURL);
+            })
+            .catch((error) => {
+              console.error("Error checking transcript:", error);
+
+              retryCount++;
+              if (retryCount < retries) {
+                console.log("Retrying in 15 seconds...");
+                setTimeout(fetchTranscript, interval);
+              } else {
+                console.log(
+                  "Maximum retries reached. Unable to fetch transcript."
+                );
+              }
+            });
+        };
+
+        setTimeout(fetchTranscript, interval);
+      }
+      function getTranscriptData(transcriptURL) {
+        var xhr = new XMLHttpRequest();
+        xhr.open("GET", transcriptURL, true);
+        xhr.onreadystatechange = function () {
+          if (xhr.readyState === 4 && xhr.status === 200) {
+            var transcriptText = xhr.responseText;
+            displayTranscript(transcriptText);
+            sendToChatGPT(transcriptText); // Call the function to send transcript to ChatGPT
+          }
+        };
+        xhr.send();
+      }
+      function displayTranscript(text) {
+        var transcriptDiv = document.getElementById("transcript");
+        transcriptDiv.textContent = text;
+      }
+      function extractURLWithoutQueryParams(url) {
+        const index = url.indexOf("?");
+        if (index !== -1) {
+          return url.substring(0, index);
+        }
+        return url;
+      }
+      function sendToChatGPT(transcript) {
+        const prompt = transcript;
+        fetch("/chat", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ prompt }),
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            console.log(data); // Log the response data for debugging
+
+            const generatedResponse = data.response;
+            const responseContainer =
+              document.querySelector("#responseContainer");
+            responseContainer.innerHTML = `<p>${generatedResponse}</p>`;
+          })
+          .catch((error) => {
+            console.error("Error:", error);
+          });
+      }
+    </script>
+  </body>
+</html>
