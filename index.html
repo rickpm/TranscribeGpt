@@ -163,7 +163,7 @@
       function waitForTranscriptResult(
         fileName,
         retries = 3,
-        interval = 15000
+        interval = 10000
       ) {
         const transcriptFileName = fileName.replace(".wav", ".txt");
         const url = "/transcripts/" + transcriptFileName;
