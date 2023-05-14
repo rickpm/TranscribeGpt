@@ -13,7 +13,8 @@ app.use(express.json());
 const storage = multer.memoryStorage();
 const upload = multer({
   storage,
-  limits: { fileSize: 10 * 1024 * 1024 }, // Increase the limit to 10MB
+  limits: { 
+    fileSize: 20 * 1024 * 1024 }, // Increase the limit to 20MB
 });
 
 // Configure AWS SDK
@@ -21,6 +22,9 @@ AWS.config.update({
   accessKeyId: process.env.AWS_ACCESS_KEY_ID,
   secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
   region: process.env.AWS_REGION,
+  s3: {
+    maxFileSize: 20 * 1024 * 1024, // 10MB upload limit
+  },
 });
 
 const s3 = new AWS.S3();
