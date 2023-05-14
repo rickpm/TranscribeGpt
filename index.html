@@ -26,14 +26,16 @@
       }
 
       button {
-        width: 25%;
-        height: 100px;
+        width: 150px;
+        height: 150px;
         font-size: 24px;
         background-color: red;
         border: 0;
-        border-radius: 50px;
+        border-radius: 75px;
         margin: 18px;
         outline: none;
+        position: fixed;
+        top: 0;
       }
 
       .notRec {
@@ -86,6 +88,7 @@
       #resultText {
         font-size: 20px;
       }
+      
     </style>
   </head>
 
@@ -199,25 +202,38 @@
       }
 
       function getTranscriptData(transcriptURL) {
-        var xhr = new XMLHttpRequest();
-        xhr.open("GET", transcriptURL, true);
-        xhr.onreadystatechange = function () {
-          try {
-            if (xhr.readyState === 4) {
-              if (xhr.status === 200) {
-                var transcriptText = xhr.responseText;
-                displayTranscript(transcriptText);
-                sendToChatGPT(transcriptText);
+        let retryCount = 0;
+      
+        const fetchData = () => {
+          var xhr = new XMLHttpRequest();
+          xhr.open("GET", transcriptURL, true);
+          xhr.onreadystatechange = function () {
+            try {
+              if (xhr.readyState === 4) {
+                if (xhr.status === 200) {
+                  var transcriptText = xhr.responseText;
+                  displayTranscript(transcriptText);
+                  sendToChatGPT(transcriptText);
+                } else {
+                  throw new Error("Request failed with status " + xhr.status);
+                }
+              }
+            } catch (error) {
+              console.error("Error processing transcript request:", error);
+              retryCount++;
+              if (retryCount < 3) {
+                console.log("Retrying in 10 seconds...");
+                setTimeout(fetchData, 10000); // Retry after 10 seconds
               } else {
-                throw new Error("Request failed with status " + xhr.status);
+                console.error("Maximum retries reached. Unable to fetch transcript.");
               }
             }
-          } catch (error) {
-            console.error("Error processing transcript request:", error);
-          }
+          };
+          xhr.send();
         };
-        xhr.send();
-      }
+      
+        fetchData();
+      }      
 
       function displayTranscript(text) {
         var transcriptDiv = document.getElementById("transcript");
