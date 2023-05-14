@@ -98,7 +98,7 @@ app.get("/transcripts/:filename", (req, res) => {
       console.error("Error getting signed URL:", err);
       res.status(500).send("Error getting signed URL");
     } else {
-      console.log("Transcript URL:", url);
+      //console.log("Transcript URL:", url);
       res.send(url);
     }
   });
