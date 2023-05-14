@@ -2,29 +2,9 @@
 <html>
   <head>
     <title>Audio Recording and Upload</title>
-    <style>
-      /* Add CSS styles for responsive layout */
-      @media (max-width: 600px) {
-        /* Adjust button size for small screens */
-        button {
-          padding: 10px;
-          font-size: 16px;
-        }
-      }
-    </style>
   </head>
 
   <body>
-    <style>
-      /* Add CSS styles for responsive layout */
-      @media (max-width: 600px) {
-        /* Adjust button size for small screens */
-        button {
-          padding: 10px;
-          font-size: 16px;
-        }
-      }
-    </style>
     <h1>Audio Recording and Upload to S3 Bucket</h1>
     <button id="enable-microphone">Enable Microphone</button>
     <button id="disable-microphone" disabled>Disable Microphone</button>
@@ -33,7 +13,6 @@
     <p id="transcript"></p>
     <br>
     <div id="responseContainer"></div>
-    <div id="log"></div> <!-- Added log container -->
 
     <script src="https://cdn.webrtc-experiment.com/RecordRTC.js"></script>
     <script>
@@ -54,10 +33,10 @@
             enableMicrophoneBtn.disabled = true;
             disableMicrophoneBtn.disabled = false;
             startRecordingBtn.disabled = false;
-            logMessage("Microphone enabled"); // Log message
+            console.log("Microphone enabled");
           })
           .catch(function (err) {
-            logError("Error enabling microphone", err); // Log error
+            console.error("Error enabling microphone", err);
           });
       }
 
@@ -69,7 +48,7 @@
         disableMicrophoneBtn.disabled = true;
         startRecordingBtn.disabled = true;
         stopRecordingBtn.disabled = true;
-        logMessage("Microphone disabled"); // Log message
+        console.log("Microphone disabled");
       }
 
       startRecordingBtn.addEventListener("click", startRecording);
@@ -81,16 +60,16 @@
             audioStream = stream;
             recorder = new RecordRTC(stream, {
               type: "audio",
-              recorderType: RecordRTC.StereoAudioRecorder,
+              recorderType: RecordRTC.StereoAudioRecorder, // force for all browsers
               numberOfAudioChannels: 2,
             });
             recorder.startRecording();
             startRecordingBtn.disabled = true;
             stopRecordingBtn.disabled = false;
-            logMessage("Recording started"); // Log message
+            console.log("Recording started");
           })
           .catch(function (err) {
-            logError("Error starting recording", err); // Log error
+            console.error("Error starting recording", err);
           });
       }
 
@@ -103,7 +82,7 @@
           recorder.reset();
           startRecordingBtn.disabled = false;
           stopRecordingBtn.disabled = true;
-          logMessage("Recording stopped"); // Log message
+          console.log("Recording stopped");
         });
       }
 
@@ -117,11 +96,11 @@
           body: formData,
         })
           .then(function (response) {
-            logMessage("File uploaded successfully"); // Log message
+            console.log("File uploaded successfully");
             waitForTranscriptResult(fileName);
           })
           .catch(function (error) {
-            logError("Error uploading file", error); // Log error
+            console.error("Error uploading file", error);
           });
       }
 
@@ -145,28 +124,29 @@
               }
             })
             .then((result) => {
+              //console.log("Transcript availability:", result);
+              // Process the result as needed
               const cleanURL = extractURLWithoutQueryParams(result);
-              logMessage("Clean URL: " + cleanURL); // Log message
+              console.log("Clean URL:", cleanURL);
               getTranscriptData(cleanURL);
             })
             .catch((error) => {
-              logError("Error checking transcript: ", error); // Log error
+              console.error("Error checking transcript:", error);
 
               retryCount++;
               if (retryCount < retries) {
-                logMessage("Retrying in 15 seconds..."); // Log message
+                console.log("Retrying in 15 seconds...");
                 setTimeout(fetchTranscript, interval);
               } else {
-                logMessage(
+                console.log(
                   "Maximum retries reached. Unable to fetch transcript."
-                ); // Log message
+                );
               }
             });
         };
 
         setTimeout(fetchTranscript, interval);
       }
-
       function getTranscriptData(transcriptURL) {
         var xhr = new XMLHttpRequest();
         xhr.open("GET", transcriptURL, true);
@@ -174,17 +154,15 @@
           if (xhr.readyState === 4 && xhr.status === 200) {
             var transcriptText = xhr.responseText;
             displayTranscript(transcriptText);
-            sendToChatGPT(transcriptText);
+            sendToChatGPT(transcriptText); // Call the function to send transcript to ChatGPT
           }
         };
         xhr.send();
       }
-
       function displayTranscript(text) {
         var transcriptDiv = document.getElementById("transcript");
         transcriptDiv.textContent = text;
       }
-
       function extractURLWithoutQueryParams(url) {
         const index = url.indexOf("?");
         if (index !== -1) {
@@ -192,7 +170,6 @@
         }
         return url;
       }
-
       function sendToChatGPT(transcript) {
         const prompt = transcript;
         fetch("/chat", {
@@ -204,7 +181,7 @@
         })
           .then((response) => response.json())
           .then((data) => {
-            logMessage(data); // Log response data
+            console.log(data); // Log the response data for debugging
 
             const generatedResponse = data.response;
             const responseContainer =
@@ -212,18 +189,8 @@
             responseContainer.innerHTML = `<p>${generatedResponse}</p>`;
           })
           .catch((error) => {
-            logError("Error:", error); // Log error
+            console.error("Error:", error);
           });
-      }
-
-      function logMessage(message) {
-        const logContainer = document.getElementById("log");
-        logContainer.innerHTML += `<p>${message}</p>`;
-      }
-
-      function logError(message, error) {
-        const logContainer = document.getElementById("log");
-        logContainer.innerHTML += `<p><strong>Error:</strong> ${message} - ${error}</p>`;
       }
     </script>
   </body>

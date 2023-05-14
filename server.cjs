@@ -80,7 +80,7 @@ app.post("/chat", async (req, res) => {
       { role: "system", content: "You are a helpful assistant." },
       { role: "user", content: prompt },
     ],
-    max_tokens: 50, // Adjust this as per your requirements
+    max_tokens: 100, // Adjust this as per your requirements
     model: "gpt-3.5-turbo", // Specify the model ID or name here
   };
 
