@@ -168,12 +168,6 @@
         document.getElementById("recButton").innerHTML = "Click again to stop";
         $('#loader').removeClass('hidden');
         $('#loadingText').removeClass('hidden');
-          // Clear transcript and response container
-        $('#transcript').text("");
-        $('#responseContainer').html("");
-            
-        // Clear result text
-        $('#resultText').text("");
         setTimeout(stopRecording, 60000); // Stop recording after 1 minute
       }
 
