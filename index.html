@@ -300,15 +300,23 @@
             const generatedResponse = data.response;
             const responseContainer = document.querySelector("#responseContainer");
             const resultText = document.getElementById('resultText');
-            resultText.textContent = generatedResponse;
-            responseContainer.innerHTML = `<p>${generatedResponse}</p>`;
+      
+            if (resultText) {
+              resultText.textContent = generatedResponse;
+            }
+      
+            if (responseContainer) {
+              responseContainer.innerHTML = `<p>${generatedResponse}</p>`;
+            }
           })
           .catch((error) => {
             console.error("Error:", error);
           });
-            // Update the button text
-             $('#recButton').text("Click Again for another question");
+      
+        // Update the button text
+        $('#recButton').text("Click Again for another question");
       }
+      
 
       $(document).ready(function () {
         $('#recButton').click(function () {
