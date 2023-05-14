@@ -54,6 +54,8 @@ app.post("/upload", upload.single("file"), (req, res) => {
       res.status(500).send("Error uploading file");
     } else {
       console.log("File uploaded successfully");
+      const fileSizeInMB = file.size / (1024 * 1024); // Calculate file size in MB
+      console.log("File uploaded successfully. Size:", fileSizeInMB.toFixed(2) + "MB");
       res.send("File uploaded successfully");
     }
   });
