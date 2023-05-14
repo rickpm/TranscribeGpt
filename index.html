@@ -3,14 +3,7 @@
   <head>
     <title>Ask me a question</title>
     <style>
-      /* Add CSS styles for responsive layout */
-      @media (max-width: 600px) {
-        /* Adjust button size for small screens */
-        button {
-          padding: 10px;
-          font-size: 100px;
-        }
-      }
+      /* Default styles */
 
       body {
         display: flex;
@@ -60,6 +53,7 @@
           box-shadow: 0px 0px 5px 13px rgba(173, 0, 0, 0);
         }
       }
+
       #loader {
         border: 16px solid #f3f3f3; /* Light grey */
         border-top: 16px solid #3498db; /* Blue */
@@ -70,35 +64,66 @@
         margin: 0 auto;
         margin-bottom: 10px;
       }
-      
+
       @keyframes spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
       }
-      
+
       #loadingText {
         text-align: center;
-        font-size: 80;
+        font-size: 80px;
       }
+
       #responseContainer {
         text-align: center;
-        font-size: 100;
-
+        font-size: 100px;
       }
 
       #transcript {
         text-align: center;
-        font-size: 100;
-
+        font-size: 100px;
       }
+
       .hidden {
         display: none;
       }
+
       #resultText {
-        font-size: 100;
+        font-size: 100px;
       }
-      
+
+      /* Media queries for responsiveness */
+
+      @media only screen and (max-width: 600px) {
+        button {
+          width: 100px;
+          height: 100px;
+          font-size: 16px;
+        }
+
+        #loadingText {
+          font-size: 40px;
+        }
+
+        #responseContainer {
+          font-size: 50px;
+        }
+
+        #transcript {
+          font-size: 50px;
+        }
+
+        #resultText {
+          font-size: 50px;
+        }
+      }
     </style>
+    
   </head>
 
   <body>
