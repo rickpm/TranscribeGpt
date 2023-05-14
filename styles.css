@@ -71,8 +71,16 @@ button:hover {
 /* Styles for mobile devices */
 @media (max-width: 600px) {
   button {
-    padding: 15px 30px;
-    font-size: 21px;
+    padding: 18px 36px;
+    font-size: 24px;
+  }
+
+  #transcript {
+    font-size: 24px;
+  }
+
+  #responseContainer {
+    font-size: 26px;
   }
 }
 
