@@ -28,6 +28,10 @@ const upload = multer({
   limits: { fileSize: 10 * 1024 * 1024 }, // 10MB upload limit
 });
 
+// Serve the CSS file
+app.get("/styles.css", (req, res) => {
+  res.sendFile(path.join(__dirname, "styles.css"));
+});
 
 // Configure AWS SDK
 AWS.config.update({

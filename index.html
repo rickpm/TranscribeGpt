@@ -2,135 +2,14 @@
 <html>
   <head>
     <title>Ask me a question</title>
-    <style>
-      /* Default styles */
-
-      body {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        height: 100vh;
-        margin: 0;
-      }
-
-      h1 {
-        text-align: center;
-      }
-
-      button {
-        width: 150px;
-        height: 150px;
-        font-size: 24px;
-        background-color: red;
-        border: 0;
-        border-radius: 75px;
-        margin: 18px;
-        outline: none;
-        position: fixed;
-        top: 0;
-      }
-
-      .notRec {
-        background-color: darkred;
-      }
-
-      .Rec {
-        animation-name: pulse;
-        animation-duration: 1.5s;
-        animation-iteration-count: infinite;
-        animation-timing-function: linear;
-      }
-
-      @keyframes pulse {
-        0% {
-          box-shadow: 0px 0px 5px 0px rgba(173, 0, 0, 0.3);
-        }
-        65% {
-          box-shadow: 0px 0px 5px 13px rgba(173, 0, 0, 0.3);
-        }
-        90% {
-          box-shadow: 0px 0px 5px 13px rgba(173, 0, 0, 0);
-        }
-      }
-
-      #loader {
-        border: 16px solid #f3f3f3; /* Light grey */
-        border-top: 16px solid #3498db; /* Blue */
-        border-radius: 50%;
-        width: 80px;
-        height: 80px;
-        animation: spin 2s linear infinite;
-        margin: 0 auto;
-        margin-bottom: 10px;
-      }
-
-      @keyframes spin {
-        0% {
-          transform: rotate(0deg);
-        }
-        100% {
-          transform: rotate(360deg);
-        }
-      }
-
-      #loadingText {
-        text-align: center;
-        font-size: 80px;
-      }
-
-      #responseContainer {
-        text-align: center;
-        font-size: 80px;
-      }
-
-      #transcript {
-        text-align: center;
-        font-size: 80px;
-      }
-
-      .hidden {
-        display: none;
-      }
-
-      #resultText {
-        font-size: 80px;
-      }
-
-      /* Media queries for responsiveness */
-
-      @media only screen and (max-width: 600px) {
-        button {
-          width: 100px;
-          height: 100px;
-          font-size: 16px;
-        }
-
-        #loadingText {
-          font-size: 40px;
-        }
-
-        #responseContainer {
-          font-size: 30px;
-        }
-
-        #transcript {
-          font-size: 30px;
-        }
-
-        #resultText {
-          font-size: 30px;
-        }
-      }
-    </style>
-    
+    <link rel="stylesheet" href="/styles.css">
   </head>
 
   <body>
     <br>
     <h1>Ask me a Question</h1>
     <br>
-    <button id="recButton" class="notRec">Click to Ask</button>
+    <button id="recButton" class="notRec">Start Recording</button>
     <p id="transcript"></p>
     <br>
     <div id="responseContainer">
@@ -138,13 +17,13 @@
       <p id="loadingText" class="hidden">Processing...</p>
       <p id="resultText"></p>
     </div>
-
+  
     <script src="https://cdn.webrtc-experiment.com/RecordRTC.js"></script>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
     <script>
       let recorder;
       let audioStream;
-
+  
       function enableMicrophone() {
         navigator.mediaDevices
           .getUserMedia({ audio: true })
@@ -156,7 +35,7 @@
             console.error("Error enabling microphone", err);
           });
       }
-
+  
       function startRecording() {
         recorder = new RecordRTC(audioStream, {
           type: "audio",
@@ -170,7 +49,7 @@
         $('#loadingText').removeClass('hidden');
         setTimeout(stopRecording, 60000); // Stop recording after 1 minute
       }
-
+  
       function stopRecording() {
         recorder.stopRecording(function () {
           let blob = recorder.getBlob();
@@ -178,15 +57,16 @@
           recorder.reset();
           $('#recButton').removeClass("Rec");
           $('#recButton').addClass("notRec");
-          $('#recButton').text("");
+          $('#recButton').text("Start Recording");
+          $('#loader').removeClass('hidden'); // Show the loader when recording stops
         });
       }
-
+  
       function uploadToS3(blob) {
         const fileName = "audio" + Date.now() + ".wav";
         const formData = new FormData();
         formData.append("file", blob, fileName);
-
+  
         fetch("/upload", {
           method: "POST",
           body: formData,
@@ -198,7 +78,7 @@
             console.error("Error uploading file", error);
           });
       }
-
+  
       function waitForTranscriptResult(
         fileName,
         retries = 3,
@@ -206,9 +86,9 @@
       ) {
         const transcriptFileName = fileName.replace(".wav", ".txt");
         const url = "/transcripts/" + transcriptFileName;
-
+      
         let retryCount = 0;
-
+      
         const fetchTranscript = () => {
           fetch(url)
             .then(function (response) {
@@ -224,7 +104,7 @@
             })
             .catch((error) => {
               console.error("Error checking transcript: ", error);
-
+      
               retryCount++;
               if (retryCount < retries) {
                 setTimeout(fetchTranscript, interval);
@@ -233,10 +113,11 @@
               }
             });
         };
-
-        setTimeout(fetchTranscript, interval);
+      
+        setTimeout(fetchTranscript, 10000); // Delay the execution of fetchTranscript by 10 seconds
       }
-
+      
+      
       function getTranscriptData(transcriptURL) {
         let retryCount = 0;
       
@@ -269,13 +150,13 @@
         };
       
         fetchData();
-      }      
-
+      }
+      
       function displayTranscript(text) {
         var transcriptDiv = document.getElementById("transcript");
         transcriptDiv.textContent = text;
       }
-
+      
       function extractURLWithoutQueryParams(url) {
         const index = url.indexOf("?");
         if (index !== -1) {
@@ -283,10 +164,11 @@
         }
         return url;
       }
-
+      
       function sendToChatGPT(transcript) {
         $('#loader').addClass('hidden');
         $('#loadingText').addClass('hidden');
+        $('#stopLoader').removeClass('hidden'); // Show the stop loader when sending the transcript to ChatGPT
         const prompt = transcript;
         fetch("/chat", {
           method: "POST",
@@ -308,29 +190,44 @@
             if (responseContainer) {
               responseContainer.innerHTML = `<p>${generatedResponse}</p>`;
             }
+      
+            $('#stopLoader').addClass('hidden'); // Hide the stop loader when the answer is displayed
           })
           .catch((error) => {
             console.error("Error:", error);
           });
       
         // Update the button text
-        $('#recButton').text("Click Again for another question");
+        $('#recButton').text("Start Recording");
       }
       
-
+      function resetScreen() {
+        const transcriptDiv = document.getElementById("transcript");
+        transcriptDiv.textContent = "";
+        const responseContainer = document.getElementById("responseContainer");
+        responseContainer.innerHTML = "";
+        $('#stopLoader').addClass('hidden'); // Hide the stop loader when resetting the screen
+      }
+      
       $(document).ready(function () {
         $('#recButton').click(function () {
           if ($('#recButton').hasClass('notRec')) {
             $('#recButton').removeClass("notRec");
             $('#recButton').addClass("Rec");
+            $('#loader').removeClass('hidden');
+            $('#loadingText').removeClass('hidden');
             enableMicrophone();
           } else {
             $('#recButton').removeClass("Rec");
             $('#recButton').addClass("notRec");
+            $('#loader').removeClass('hidden');
+            $('#loadingText').removeClass('hidden');
             stopRecording();
+            resetScreen();
           }
         });
       });
-    </script>
-  </body>
-</html>
+      </script>
+      </body>
+      </html>
+      

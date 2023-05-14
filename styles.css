@@ -1,0 +1,129 @@
+/* Default styles */
+body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  margin: 0;
+}
+
+h1 {
+  text-align: center;
+  margin-top: 10px; /* Adjust the margin as needed */
+  margin-right: 10px; /* Adjust the left margin as needed */
+}
+
+button {
+  width: 150px;
+  height: 150px;
+  font-size: 24px;
+  background-color: red;
+  border: 12;
+  border-radius: 120px;
+  margin: 30px;
+  outline: none;
+  position: relative;
+  top: 30px;
+  align-content: center;
+}
+
+.notRec {
+  background-color: darkred;
+}
+
+.Rec {
+  animation-name: pulse;
+  animation-duration: 1.5s;
+  animation-iteration-count: infinite;
+  animation-timing-function: linear;
+}
+
+@keyframes pulse {
+  0% {
+    box-shadow: 0px 0px 5px 0px rgba(173, 0, 0, 0.3);
+  }
+  65% {
+    box-shadow: 0px 0px 5px 13px rgba(173, 0, 0, 0.3);
+  }
+  90% {
+    box-shadow: 0px 0px 5px 13px rgba(173, 0, 0, 0);
+  }
+}
+
+#loader {
+  border: 16px solid #f3f3f3; /* Light grey */
+  border-top: 16px solid #3498db; /* Blue */
+  border-radius: 50%;
+  width: 80px;
+  height: 80px;
+  animation: spin 2s linear infinite;
+  margin: 0 auto;
+  margin-bottom: 10px;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+#loadingText {
+  text-align: center;
+  font-size: 60px;
+}
+
+#responseContainer {
+  text-align: center;
+  font-size: 60px;
+}
+
+#transcript {
+  text-align: center;
+  font-size: 60px;
+}
+
+.hidden {
+  display: none;
+}
+
+#resultContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin-top: 20px;
+}
+
+#resultText {
+  font-size: 60px;
+  margin: 0;
+}
+
+/* Media queries for responsiveness */
+@media only screen and (max-width: 600px) {
+  button {
+    width: 100px;
+    height: 100px;
+    font-size: 16px;
+  }
+
+  #loadingText {
+    font-size: 40px;
+  }
+
+  #responseContainer {
+    font-size: 30px;
+  }
+
+  #transcript {
+    font-size: 30px;
+  }
+
+  #resultText {
+    font-size: 30px;
+  }
+}
