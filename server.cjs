@@ -33,9 +33,21 @@ app.post("/upload", upload.single("file"), (req, res) => {
     Body: file.buffer,
   };
 
-  s3.upload(params, (err, data) => {
+  const uploadOptions = {
+    partSize: 10 * 1024 * 1024, // 10 MB per part
+    queueSize: 2, // Number of concurrent parts to upload
+  };
+
+  const uploadRequest = s3.upload(params, uploadOptions);
+
+  uploadRequest.on("httpUploadProgress", (progress) => {
+    // Track progress if needed
+    console.log("Upload progress:", progress);
+  });
+
+  uploadRequest.send((err, data) => {
     if (err) {
-      console.error(err);
+      console.error("Error uploading file:", err);
       res.status(500).send("Error uploading file");
     } else {
       console.log("File uploaded successfully");
@@ -43,6 +55,7 @@ app.post("/upload", upload.single("file"), (req, res) => {
     }
   });
 });
+
 
 // Route for checking transcript availability and getting transcript URL
 app.get("/transcripts/:filename", (req, res) => {
