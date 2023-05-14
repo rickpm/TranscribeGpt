@@ -5,16 +5,25 @@ const AWS = require("aws-sdk");
 const path = require("path");
 const axios = require("axios");
 const pm2 = require("pm2");
+const fs = require("fs");
+
 
 const app = express();
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 // Set up multer for file uploads
 const storage = multer.memoryStorage();
+// Set up multer for file uploads
 const upload = multer({
-  storage,
-  limits: { 
-    fileSize: 20 * 1024 * 1024 }, // Increase the limit to 20MB
+  storage: multer.diskStorage({
+    destination: function (req, file, cb) {
+      cb(null, "./"); // Save the file in the root of the application
+    },
+    filename: function (req, file, cb) {
+      cb(null, file.originalname); // Use the original filename
+    },
+  }),
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB upload limit
 });
 
 // Configure AWS SDK
@@ -34,37 +43,35 @@ const bucketName = process.env.S3_BUCKET_NAME;
 app.post("/upload", upload.single("file"), (req, res) => {
   const file = req.file;
 
-  console.log("Received file:", file.originalname);
-  console.log("File size:", (file.size / (1024 * 1024)).toFixed(2) + "MB");
+  if (!file) {
+    res.status(400).send("No file uploaded");
+    return;
+  }
 
   const params = {
     Bucket: bucketName,
     Key: "audio/" + file.originalname,
-    Body: file.buffer,
+    Body: fs.createReadStream(file.path), // Use a readable stream of the file path
   };
 
-  const uploadOptions = {
-    partSize: 10 * 1024 * 1024, // 10 MB per part
-    queueSize: 2, // Number of concurrent parts to upload
-  };
+  s3.upload(params, (err, data) => {
+    // Delete the file after upload is complete
+    fs.unlink(file.path, (err) => {
+      if (err) {
+        console.error("Error deleting file:", err);
+      }
+    });
 
-  const uploadRequest = s3.upload(params, uploadOptions);
-
-  uploadRequest.on("httpUploadProgress", (progress) => {
-    console.log("Upload progress:", progress);
-  });
-
-  uploadRequest.send((err, data) => {
     if (err) {
       console.error("Error uploading file:", err);
       res.status(500).send("Error uploading file");
     } else {
-      console.log("File uploaded successfully");
-      console.log("Uploaded file URL:", data.Location);
+      console.log("File uploaded successfully. Size:", file.size);
       res.send("File uploaded successfully");
     }
   });
 });
+
 
 
 
