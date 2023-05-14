@@ -61,10 +61,48 @@
           $('#recButton').text("");
           $('#loader').removeClass('hidden'); // Show the loader when recording stops
           $('#processingText').removeClass('hidden'); // Show the "Processing..." text
+          setTimeout(waitForTranscriptResult, 10000); // Wait 10 seconds before fetching the transcript
         });
       }
       
-  
+      function waitForTranscriptResult() {
+        const transcriptURL = "/transcripts/transcript.txt";
+      
+        let retryCount = 0;
+        const maxRetries = 10;
+        const retryInterval = 3000; // 3 seconds
+      
+        const fetchTranscript = () => {
+          fetch(transcriptURL)
+            .then(function (response) {
+              if (response.ok) {
+                return response.text();
+              } else {
+                throw new Error("Network response was not OK");
+              }
+            })
+            .then((result) => {
+              const cleanURL = extractURLWithoutQueryParams(result);
+              displayTranscript(result);
+              sendToChatGPT(result);
+            })
+            .catch((error) => {
+              console.error("Error checking transcript:", error);
+      
+              retryCount++;
+              if (retryCount < maxRetries) {
+                console.log("Retrying in 10 seconds...");
+                setTimeout(fetchTranscript, retryInterval);
+              } else {
+                console.error("Maximum retries reached. Unable to fetch transcript.");
+              }
+            });
+        };
+      
+        setTimeout(fetchTranscript, retryInterval);
+      }
+      
+
       function uploadToS3(blob) {
         const fileName = "audio" + Date.now() + ".wav";
         const formData = new FormData();
@@ -81,45 +119,6 @@
             console.error("Error uploading file", error);
           });
       }
-  
-      function waitForTranscriptResult(
-        fileName,
-        retries = 20,
-        interval = 3000
-      ) {
-        const transcriptFileName = fileName.replace(".wav", ".txt");
-        const url = "/transcripts/" + transcriptFileName;
-      
-        let retryCount = 0;
-      
-        const fetchTranscript = () => {
-          fetch(url)
-            .then(function (response) {
-              if (response.ok) {
-                return response.text();
-              } else {
-                throw new Error("Network response was not OK");
-              }
-            })
-            .then((result) => {
-              const cleanURL = extractURLWithoutQueryParams(result);
-              getTranscriptData(cleanURL);
-            })
-            .catch((error) => {
-              console.error("Error checking transcript: ", error);
-      
-              retryCount++;
-              if (retryCount < retries) {
-                setTimeout(fetchTranscript, interval);
-              } else {
-                console.error("Maximum retries reached. Unable to fetch transcript.");
-              }
-            });
-        };
-      
-        setTimeout(fetchTranscript, 5000); // Delay the execution of fetchTranscript by 10 seconds
-      }
-      
       
       function getTranscriptData(transcriptURL) {
         let retryCount = 0;
