@@ -69,7 +69,7 @@ button:hover {
 
 
 /* Styles for mobile devices */
-@media (max-width: 600px) {
+@media (max-width: 800px) {
   button {
     padding: 18px 36px;
     font-size: 24px;
