@@ -15,6 +15,7 @@
     <div id="responseContainer">
       <div id="loader" class="hidden"></div>
       <p id="loadingText" class="hidden">Processing...</p>
+      <p id="processingText" class="hidden">Processing...</p>
       <p id="resultText"></p>
     </div>
   
@@ -57,10 +58,12 @@
           recorder.reset();
           $('#recButton').removeClass("Rec");
           $('#recButton').addClass("notRec");
-          $('#recButton').text("Start Recording");
+          $('#recButton').text("");
           $('#loader').removeClass('hidden'); // Show the loader when recording stops
+          $('#processingText').removeClass('hidden'); // Show the "Processing..." text
         });
       }
+      
   
       function uploadToS3(blob) {
         const fileName = "audio" + Date.now() + ".wav";
