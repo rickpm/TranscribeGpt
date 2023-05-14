@@ -179,6 +179,12 @@
           $('#recButton').removeClass("Rec");
           $('#recButton').addClass("notRec");
           $('#recButton').text("");
+              // Clear transcript and response container
+          $('#transcript').text("");
+          $('#responseContainer').html("");
+
+          // Clear result text
+          $('#resultText').text("");
         });
       }
 
