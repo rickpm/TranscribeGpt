@@ -11,7 +11,10 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 // Set up multer for file uploads
 const storage = multer.memoryStorage();
-const upload = multer({ storage });
+const upload = multer({
+  storage,
+  limits: { fileSize: 10 * 1024 * 1024 }, // Increase the limit to 10MB
+});
 
 // Configure AWS SDK
 AWS.config.update({
