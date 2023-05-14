@@ -30,6 +30,9 @@ const bucketName = process.env.S3_BUCKET_NAME;
 app.post("/upload", upload.single("file"), (req, res) => {
   const file = req.file;
 
+  console.log("Received file:", file.originalname);
+  console.log("File size:", (file.size / (1024 * 1024)).toFixed(2) + "MB");
+
   const params = {
     Bucket: bucketName,
     Key: "audio/" + file.originalname,
@@ -44,7 +47,6 @@ app.post("/upload", upload.single("file"), (req, res) => {
   const uploadRequest = s3.upload(params, uploadOptions);
 
   uploadRequest.on("httpUploadProgress", (progress) => {
-    // Track progress if needed
     console.log("Upload progress:", progress);
   });
 
@@ -54,12 +56,12 @@ app.post("/upload", upload.single("file"), (req, res) => {
       res.status(500).send("Error uploading file");
     } else {
       console.log("File uploaded successfully");
-      const fileSizeInMB = file.size / (1024 * 1024); // Calculate file size in MB
-      console.log("File uploaded successfully. Size:", fileSizeInMB.toFixed(2) + "MB");
+      console.log("Uploaded file URL:", data.Location);
       res.send("File uploaded successfully");
     }
   });
 });
+
 
 
 // Route for checking transcript availability and getting transcript URL
