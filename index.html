@@ -171,14 +171,26 @@
         var xhr = new XMLHttpRequest();
         xhr.open("GET", transcriptURL, true);
         xhr.onreadystatechange = function () {
-          if (xhr.readyState === 4 && xhr.status === 200) {
-            var transcriptText = xhr.responseText;
-            displayTranscript(transcriptText);
-            sendToChatGPT(transcriptText);
+          try {
+            if (xhr.readyState === 4) {
+              if (xhr.status === 200) {
+                var transcriptText = xhr.responseText;
+                displayTranscript(transcriptText);
+                sendToChatGPT(transcriptText);
+              } else {
+                throw new Error("Request failed with status " + xhr.status);
+                logMessage("Request failed with status " + xhr.status); // Log message
+
+              }
+            }
+          } catch (error) {
+            console.error("Error processing transcript request:", error);
+            logError("Error processing transcript request:", error); // Log error
           }
         };
         xhr.send();
       }
+      
 
       function displayTranscript(text) {
         var transcriptDiv = document.getElementById("transcript");
