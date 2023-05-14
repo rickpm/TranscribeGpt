@@ -83,14 +83,15 @@
       .hidden {
         display: none;
       }
-      
-      
+      #resultText {
+        font-size: 150%;
+      }
       
     </style>
   </head>
 
   <body>
-    <h1>Ask me a question</h1>
+    <h1>Ask me a Question</h1>
     <button id="recButton" class="notRec">Click to Ask</button>
     <p id="transcript"></p>
     <br>
@@ -255,7 +256,7 @@
             console.error("Error:", error);
           });
             // Update the button text
-             $('#recButton').text("Click again for another question");
+             $('#recButton').text("Click Again for another question");
       }
 
       $(document).ready(function () {
