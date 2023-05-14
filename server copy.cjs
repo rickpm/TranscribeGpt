@@ -4,7 +4,7 @@ const multer = require("multer");
 const AWS = require("aws-sdk");
 const path = require("path");
 const axios = require("axios");
-const pm2 = require("pm2");
+
 
 const app = express();
 app.use(express.urlencoded({ extended: true }));
@@ -60,7 +60,7 @@ app.get("/transcripts/:filename", (req, res) => {
       console.error("Error getting signed URL:", err);
       res.status(500).send("Error getting signed URL");
     } else {
-      console.log("Transcript URL:", url);
+      //console.log("Transcript URL:", url);
       res.send(url);
     }
   });
@@ -89,7 +89,7 @@ app.post("/chat", async (req, res) => {
     res.json({ response: response.data.choices[0].message.content });
     //console.log('Response:', response.data.choices[0].message.content);
   } catch (error) {
-    console.error("OpenAI API Error:", error.response.data);
+    //console.error('OpenAI API Error:', error.response.data);
     res.status(500).json({ error: "An error occurred" });
   }
 });
@@ -104,6 +104,3 @@ const port = 3000;
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);
 });
-
-// PM2 Logging
-pm2
