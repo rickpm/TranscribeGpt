@@ -6,9 +6,11 @@ const path = require("path");
 const axios = require("axios");
 const pm2 = require("pm2");
 const fs = require("fs");
-
+const bodyParser = require("body-parser");
 
 const app = express();
+app.use(bodyParser.json({ limit: "10mb" }));
+app.use(bodyParser.urlencoded({ limit: "10mb", extended: true }));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 // Set up multer for file uploads
@@ -25,6 +27,7 @@ const upload = multer({
   }),
   limits: { fileSize: 10 * 1024 * 1024 }, // 10MB upload limit
 });
+
 
 // Configure AWS SDK
 AWS.config.update({
