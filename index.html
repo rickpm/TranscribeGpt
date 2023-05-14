@@ -1,79 +1,127 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>Ask me a question</title>
-    <link rel="stylesheet" href="/styles.css">
+    <title>Ask GPT</title>
+    <link rel="stylesheet" type="text/css" href="styles.css">
   </head>
 
   <body>
-    <br>
-    <h1>Ask me a Question</h1>
-    <br>
-    <button id="recButton" class="notRec">Start Recording</button>
+    <h1>Ask GPT</h1>
+    <button id="record-toggle">Start Recording</button>
     <p id="transcript"></p>
     <br>
-    <div id="responseContainer">
-      <div id="loader" class="hidden"></div>
-      <p id="loadingText" class="hidden">Processing...</p>
-      <p id="processingText" class="hidden">Processing...</p>
-      <p id="resultText"></p>
-    </div>
-  
+    <div id="responseContainer"></div>
+
+    <div class="spinner" id="spinner"></div>
+
     <script src="https://cdn.webrtc-experiment.com/RecordRTC.js"></script>
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
     <script>
+      let recordToggleBtn = document.getElementById("record-toggle");
       let recorder;
       let audioStream;
-  
-      function enableMicrophone() {
+      let isRecording = false;
+      let spinner = document.getElementById("spinner");
+      let transcriptElement = document.getElementById("transcript");
+      let responseContainer = document.getElementById("responseContainer");
+      
+      recordToggleBtn.addEventListener("click", toggleRecording);
+      
+      function toggleRecording() {
+        if (!isRecording) {
+          clearContent();
+          startRecording();
+        } else {
+          stopRecording();
+        }
+      }
+      function clearContent() {
+        transcriptElement.textContent = "";
+        responseContainer.innerHTML = "";
+      }
+      function startRecording() {
+        isRecording = true;
+        recordToggleBtn.textContent = "Stop Recording";
+        spinner.style.display = "block";
+        spinner.classList.add("spin");
+      
         navigator.mediaDevices
           .getUserMedia({ audio: true })
           .then(function (stream) {
             audioStream = stream;
-            startRecording();
+            recorder = new RecordRTC(stream, {
+              type: "audio",
+              recorderType: RecordRTC.StereoAudioRecorder,
+              numberOfAudioChannels: 2,
+            });
+            recorder.startRecording();
           })
           .catch(function (err) {
-            console.error("Error enabling microphone", err);
+            console.error("Error starting recording", err);
+            isRecording = false;
+            recordToggleBtn.textContent = "Start Recording";
+            spinner.style.display = "none";
+            spinner.classList.remove("spin");
           });
       }
-  
-      function startRecording() {
-        recorder = new RecordRTC(audioStream, {
-          type: "audio",
-          recorderType: RecordRTC.StereoAudioRecorder,
-          numberOfAudioChannels: 2,
-        });
-        recorder.startRecording();
-        $('#recButton').addClass("Rec");
-        document.getElementById("recButton").innerHTML = "Click again to stop";
-        $('#loader').removeClass('hidden');
-        $('#loadingText').removeClass('hidden');
-        setTimeout(stopRecording, 60000); // Stop recording after 1 minute
-      }
-  
+      
+
       function stopRecording() {
+        isRecording = false;
+        recordToggleBtn.textContent = "Start Recording";
+        //spinner.classList.remove("spin");
         recorder.stopRecording(function () {
           let blob = recorder.getBlob();
           uploadToS3(blob);
           recorder.reset();
-          $('#recButton').removeClass("Rec");
-          $('#recButton').addClass("notRec");
-          $('#recButton').text("");
-          $('#loader').removeClass('hidden'); // Show the loader when recording stops
-          $('#processingText').removeClass('hidden'); // Show the "Processing..." text
-          setTimeout(waitForTranscriptResult, 10000); // Wait 10 seconds before fetching the transcript
         });
       }
-      
-      function waitForTranscriptResult() {
-        const transcriptURL = "/transcripts/transcript.txt";
-      
+
+      function uploadToS3(blob) {
+        spinner.style.display = "block";
+        spinner.classList.add("spin");
+        const fileName = "audio" + Date.now() + ".wav";
+        const formData = new FormData();
+        formData.append("file", blob, fileName);
+
+        fetch("/upload", {
+          method: "POST",
+          body: formData,
+        })
+          .then(function (response) {
+            document.getElementById("spinner").style.display = "none";
+            recordToggleBtn.disabled = false;
+
+            if (response.ok) {
+              logMessage("File uploaded successfully");
+
+              const transcriptFileName = fileName.replace(".wav", ".txt");
+              waitForTranscriptResult(transcriptFileName);
+            } else {
+              logError("Error uploading file");
+            }
+          })
+          .catch(function (error) {
+            document.getElementById("spinner").style.display = "none";
+            recordToggleBtn.disabled = false;
+
+            logError("Error uploading file", error);
+          });
+      }
+
+      function waitForTranscriptResult(
+        fileName,
+        retries = 3,
+        interval = 15000
+      ) {
+        spinner.style.display = "block";
+        spinner.classList.add("spin");
+        const transcriptFileName = fileName.replace(".wav", ".txt");
+        const url = "/transcripts/" + transcriptFileName;
+
         let retryCount = 0;
-        const maxRetries = 10;
-        const retryInterval = 3000; // 3 seconds
-      
+
         const fetchTranscript = () => {
-          fetch(transcriptURL)
+          fetch(url)
             .then(function (response) {
               if (response.ok) {
                 return response.text();
@@ -83,47 +131,31 @@
             })
             .then((result) => {
               const cleanURL = extractURLWithoutQueryParams(result);
-              displayTranscript(result);
-              sendToChatGPT(result);
+              logMessage("Clean URL: " + cleanURL);
+              getTranscriptData(cleanURL);
             })
             .catch((error) => {
-              console.error("Error checking transcript:", error);
-      
+              logError("Error checking transcript: ", error);
+
               retryCount++;
-              if (retryCount < maxRetries) {
-                console.log("Retrying in 10 seconds...");
-                setTimeout(fetchTranscript, retryInterval);
+              if (retryCount < retries) {
+                logMessage("Retrying in 15 seconds...");
+                setTimeout(fetchTranscript, interval);
               } else {
-                console.error("Maximum retries reached. Unable to fetch transcript.");
+                logMessage("Maximum retries reached. Unable to fetch transcript.");
               }
             });
         };
-      
-        setTimeout(fetchTranscript, retryInterval);
-      }
-      
 
-      function uploadToS3(blob) {
-        const fileName = "audio" + Date.now() + ".wav";
-        const formData = new FormData();
-        formData.append("file", blob, fileName);
-  
-        fetch("/upload", {
-          method: "POST",
-          body: formData,
-        })
-          .then(function (response) {
-            waitForTranscriptResult(fileName);
-          })
-          .catch(function (error) {
-            console.error("Error uploading file", error);
-          });
+        setTimeout(fetchTranscript, interval);
       }
-      
+
       function getTranscriptData(transcriptURL) {
+        spinner.style.display = "block";
+        spinner.classList.add("spin");
         let retryCount = 0;
       
-        const fetchData = () => {
+        const fetchTranscript = () => {
           var xhr = new XMLHttpRequest();
           xhr.open("GET", transcriptURL, true);
           xhr.onreadystatechange = function () {
@@ -135,30 +167,34 @@
                   sendToChatGPT(transcriptText);
                 } else {
                   throw new Error("Request failed with status " + xhr.status);
+                  logMessage("Request failed with status " + xhr.status);
                 }
               }
             } catch (error) {
               console.error("Error processing transcript request:", error);
+              logError("Error processing transcript request:", error);
+      
               retryCount++;
-              if (retryCount < 20) {
-                console.log("Retrying in 10 seconds...");
-                setTimeout(fetchData, 2000); // Retry after 2 seconds
+              if (retryCount < 3) {
+                logMessage("Retrying in 5 seconds...");
+                setTimeout(fetchTranscript, 5000);
               } else {
-                console.error("Maximum retries reached. Unable to fetch transcript.");
+                logMessage("Maximum retries reached. Unable to fetch transcript.");
               }
             }
           };
           xhr.send();
         };
       
-        fetchData();
+        fetchTranscript();
       }
       
+
       function displayTranscript(text) {
         var transcriptDiv = document.getElementById("transcript");
         transcriptDiv.textContent = text;
       }
-      
+
       function extractURLWithoutQueryParams(url) {
         const index = url.indexOf("?");
         if (index !== -1) {
@@ -166,12 +202,12 @@
         }
         return url;
       }
-      
+
       function sendToChatGPT(transcript) {
-        $('#loader').addClass('hidden');
-        $('#loadingText').addClass('hidden');
-        $('#stopLoader').removeClass('hidden'); // Show the stop loader when sending the transcript to ChatGPT
         const prompt = transcript;
+        spinner.style.display = "block";
+        spinner.classList.add("spin");
+      
         fetch("/chat", {
           method: "POST",
           headers: {
@@ -183,53 +219,28 @@
           .then((data) => {
             const generatedResponse = data.response;
             const responseContainer = document.querySelector("#responseContainer");
-            const resultText = document.getElementById('resultText');
-      
-            if (resultText) {
-              resultText.textContent = generatedResponse;
+            responseContainer.innerHTML = `<p>${generatedResponse}</p>`;
+            if (generatedResponse.trim() !== "") {
+              logMessage("response: " + generatedResponse);
+              spinner.style.display = "none";
+              spinner.classList.remove("spin");
             }
-      
-            if (responseContainer) {
-              responseContainer.innerHTML = `<p>${generatedResponse}</p>`;
-            }
-      
-            $('#stopLoader').addClass('hidden'); // Hide the stop loader when the answer is displayed
           })
           .catch((error) => {
-            console.error("Error:", error);
+            logError("Error:", error);
+            spinner.style.display = "none";
+            spinner.classList.remove("spin");
           });
-      
-        // Update the button text
-        $('#recButton').text("Start Recording");
       }
       
-      function resetScreen() {
-        const transcriptDiv = document.getElementById("transcript");
-        transcriptDiv.textContent = "";
-        const responseContainer = document.getElementById("responseContainer");
-        responseContainer.innerHTML = "";
-        $('#stopLoader').addClass('hidden'); // Hide the stop loader when resetting the screen
+
+      function logMessage(message) {
+        console.log(message);
       }
-      
-      $(document).ready(function () {
-        $('#recButton').click(function () {
-          if ($('#recButton').hasClass('notRec')) {
-            $('#recButton').removeClass("notRec");
-            $('#recButton').addClass("Rec");
-            $('#loader').removeClass('hidden');
-            $('#loadingText').removeClass('hidden');
-            enableMicrophone();
-          } else {
-            $('#recButton').removeClass("Rec");
-            $('#recButton').addClass("notRec");
-            $('#loader').removeClass('hidden');
-            $('#loadingText').removeClass('hidden');
-            stopRecording();
-            resetScreen();
-          }
-        });
-      });
-      </script>
-      </body>
-      </html>
-      
+
+      function logError(message, error) {
+        console.error(message, error);
+      }
+    </script>
+  </body>
+</html>
