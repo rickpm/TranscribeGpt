@@ -81,8 +81,8 @@
   
       function waitForTranscriptResult(
         fileName,
-        retries = 7,
-        interval = 5000
+        retries = 20,
+        interval = 3000
       ) {
         const transcriptFileName = fileName.replace(".wav", ".txt");
         const url = "/transcripts/" + transcriptFileName;
@@ -138,9 +138,9 @@
             } catch (error) {
               console.error("Error processing transcript request:", error);
               retryCount++;
-              if (retryCount < 5) {
+              if (retryCount < 20) {
                 console.log("Retrying in 10 seconds...");
-                setTimeout(fetchData, 5000); // Retry after 10 seconds
+                setTimeout(fetchData, 2000); // Retry after 2 seconds
               } else {
                 console.error("Maximum retries reached. Unable to fetch transcript.");
               }
