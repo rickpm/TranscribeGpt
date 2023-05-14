@@ -81,8 +81,8 @@
   
       function waitForTranscriptResult(
         fileName,
-        retries = 3,
-        interval = 10000
+        retries = 7,
+        interval = 5000
       ) {
         const transcriptFileName = fileName.replace(".wav", ".txt");
         const url = "/transcripts/" + transcriptFileName;
@@ -114,7 +114,7 @@
             });
         };
       
-        setTimeout(fetchTranscript, 10000); // Delay the execution of fetchTranscript by 10 seconds
+        setTimeout(fetchTranscript, 5000); // Delay the execution of fetchTranscript by 10 seconds
       }
       
       
@@ -138,9 +138,9 @@
             } catch (error) {
               console.error("Error processing transcript request:", error);
               retryCount++;
-              if (retryCount < 3) {
+              if (retryCount < 5) {
                 console.log("Retrying in 10 seconds...");
-                setTimeout(fetchData, 10000); // Retry after 10 seconds
+                setTimeout(fetchData, 5000); // Retry after 10 seconds
               } else {
                 console.error("Maximum retries reached. Unable to fetch transcript.");
               }
