@@ -35,7 +35,7 @@ AWS.config.update({
   secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
   region: process.env.AWS_REGION,
   s3: {
-    maxFileSize: 20 * 1024 * 1024, // 10MB upload limit
+    maxFileSize: 10 * 1024 * 1024, // 10MB upload limit
   },
 });
 

@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>Ask me a question</title>
+    <title>Audio Recording and Upload</title>
     <style>
       /* Add CSS styles for responsive layout */
       @media (max-width: 600px) {
@@ -11,135 +11,99 @@
           font-size: 16px;
         }
       }
-
-      body {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        height: 100vh;
-        margin: 0;
-      }
-
-      h1 {
-        text-align: center;
-      }
-
-      button {
-        width: 25%;
-        height: 100px;
-        font-size: 24px;
-        background-color: red;
-        border: 0;
-        border-radius: 50px;
-        margin: 18px;
-        outline: none;
-      }
-
-      .notRec {
-        background-color: darkred;
-      }
-
-      .Rec {
-        animation-name: pulse;
-        animation-duration: 1.5s;
-        animation-iteration-count: infinite;
-        animation-timing-function: linear;
-      }
-
-      @keyframes pulse {
-        0% {
-          box-shadow: 0px 0px 5px 0px rgba(173, 0, 0, 0.3);
-        }
-        65% {
-          box-shadow: 0px 0px 5px 13px rgba(173, 0, 0, 0.3);
-        }
-        90% {
-          box-shadow: 0px 0px 5px 13px rgba(173, 0, 0, 0);
-        }
-      }
-      #loader {
-        border: 16px solid #f3f3f3; /* Light grey */
-        border-top: 16px solid #3498db; /* Blue */
-        border-radius: 50%;
-        width: 80px;
-        height: 80px;
-        animation: spin 2s linear infinite;
-        margin: 0 auto;
-        margin-bottom: 10px;
-      }
-      
-      @keyframes spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
-      }
-      
-      #loadingText {
-        text-align: center;
-      }
-      #responseContainer {
-        text-align: center;
-      }
-      .hidden {
-        display: none;
-      }
-      
-      
-      
     </style>
   </head>
 
   <body>
-    <h1>Ask me a question</h1>
-    <button id="recButton" class="notRec">Click to Ask</button>
+    <style>
+      /* Add CSS styles for responsive layout */
+      @media (max-width: 600px) {
+        /* Adjust button size for small screens */
+        button {
+          padding: 10px;
+          font-size: 16px;
+        }
+      }
+    </style>
+    <h1>Audio Recording and Upload to S3 Bucket</h1>
+    <button id="enable-microphone">Enable Microphone</button>
+    <button id="disable-microphone" disabled>Disable Microphone</button>
+    <button id="start-recording" disabled>Start Recording</button>
+    <button id="stop-recording" disabled>Stop Recording</button>
     <p id="transcript"></p>
     <br>
-    <div id="responseContainer">
-      <div id="loader" class="hidden"></div>
-      <p id="loadingText" class="hidden">Processing...</p>
-      <p id="resultText"></p>
-    </div>
+    <div id="responseContainer"></div>
+    <div id="log"></div> <!-- Added log container -->
 
     <script src="https://cdn.webrtc-experiment.com/RecordRTC.js"></script>
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
     <script>
+      let enableMicrophoneBtn = document.getElementById("enable-microphone");
+      let disableMicrophoneBtn = document.getElementById("disable-microphone");
+      let startRecordingBtn = document.getElementById("start-recording");
+      let stopRecordingBtn = document.getElementById("stop-recording");
       let recorder;
       let audioStream;
+
+      enableMicrophoneBtn.addEventListener("click", enableMicrophone);
 
       function enableMicrophone() {
         navigator.mediaDevices
           .getUserMedia({ audio: true })
           .then(function (stream) {
             audioStream = stream;
-            startRecording();
+            enableMicrophoneBtn.disabled = true;
+            disableMicrophoneBtn.disabled = false;
+            startRecordingBtn.disabled = false;
+            logMessage("Microphone enabled"); // Log message
           })
           .catch(function (err) {
-            console.error("Error enabling microphone", err);
+            logError("Error enabling microphone", err); // Log error
           });
       }
 
-      function startRecording() {
-        recorder = new RecordRTC(audioStream, {
-          type: "audio",
-          recorderType: RecordRTC.StereoAudioRecorder,
-          numberOfAudioChannels: 2,
-        });
-        recorder.startRecording();
-        $('#recButton').addClass("Rec");
-        document.getElementById("recButton").innerHTML = "Click again to stop";
-        $('#loader').removeClass('hidden');
-        $('#loadingText').removeClass('hidden');
-        setTimeout(stopRecording, 60000); // Stop recording after 1 minute
+      disableMicrophoneBtn.addEventListener("click", disableMicrophone);
+
+      function disableMicrophone() {
+        audioStream.getTracks().forEach((track) => track.stop());
+        enableMicrophoneBtn.disabled = false;
+        disableMicrophoneBtn.disabled = true;
+        startRecordingBtn.disabled = true;
+        stopRecordingBtn.disabled = true;
+        logMessage("Microphone disabled"); // Log message
       }
+
+      startRecordingBtn.addEventListener("click", startRecording);
+
+      function startRecording() {
+        navigator.mediaDevices
+          .getUserMedia({ audio: true })
+          .then(function (stream) {
+            audioStream = stream;
+            recorder = new RecordRTC(stream, {
+              type: "audio",
+              recorderType: RecordRTC.StereoAudioRecorder,
+              numberOfAudioChannels: 2,
+            });
+            recorder.startRecording();
+            startRecordingBtn.disabled = true;
+            stopRecordingBtn.disabled = false;
+            logMessage("Recording started"); // Log message
+          })
+          .catch(function (err) {
+            logError("Error starting recording", err); // Log error
+          });
+      }
+
+      stopRecordingBtn.addEventListener("click", stopRecording);
 
       function stopRecording() {
         recorder.stopRecording(function () {
           let blob = recorder.getBlob();
           uploadToS3(blob);
           recorder.reset();
-          $('#recButton').removeClass("Rec");
-          $('#recButton').addClass("notRec");
-          $('#recButton').text("");
+          startRecordingBtn.disabled = false;
+          stopRecordingBtn.disabled = true;
+          logMessage("Recording stopped"); // Log message
         });
       }
 
@@ -153,10 +117,11 @@
           body: formData,
         })
           .then(function (response) {
+            logMessage("File uploaded successfully"); // Log message
             waitForTranscriptResult(fileName);
           })
           .catch(function (error) {
-            console.error("Error uploading file", error);
+            logError("Error uploading file", error); // Log error
           });
       }
 
@@ -181,16 +146,20 @@
             })
             .then((result) => {
               const cleanURL = extractURLWithoutQueryParams(result);
+              logMessage("Clean URL: " + cleanURL); // Log message
               getTranscriptData(cleanURL);
             })
             .catch((error) => {
-              console.error("Error checking transcript: ", error);
+              logError("Error checking transcript: ", error); // Log error
 
               retryCount++;
               if (retryCount < retries) {
+                logMessage("Retrying in 15 seconds..."); // Log message
                 setTimeout(fetchTranscript, interval);
               } else {
-                console.error("Maximum retries reached. Unable to fetch transcript.");
+                logMessage(
+                  "Maximum retries reached. Unable to fetch transcript."
+                ); // Log message
               }
             });
         };
@@ -210,14 +179,18 @@
                 sendToChatGPT(transcriptText);
               } else {
                 throw new Error("Request failed with status " + xhr.status);
+                logMessage("Request failed with status " + xhr.status); // Log message
+
               }
             }
           } catch (error) {
             console.error("Error processing transcript request:", error);
+            logError("Error processing transcript request:", error); // Log error
           }
         };
         xhr.send();
       }
+      
 
       function displayTranscript(text) {
         var transcriptDiv = document.getElementById("transcript");
@@ -233,8 +206,6 @@
       }
 
       function sendToChatGPT(transcript) {
-        $('#loader').addClass('hidden');
-        $('#loadingText').addClass('hidden');
         const prompt = transcript;
         fetch("/chat", {
           method: "POST",
@@ -245,32 +216,27 @@
         })
           .then((response) => response.json())
           .then((data) => {
+            logMessage(data); // Log response data
+
             const generatedResponse = data.response;
-            const responseContainer = document.querySelector("#responseContainer");
-            const resultText = document.getElementById('resultText');
-            resultText.textContent = generatedResponse;
+            const responseContainer =
+              document.querySelector("#responseContainer");
             responseContainer.innerHTML = `<p>${generatedResponse}</p>`;
           })
           .catch((error) => {
-            console.error("Error:", error);
+            logError("Error:", error); // Log error
           });
-            // Update the button text
-             $('#recButton').text("Click again for another question");
       }
 
-      $(document).ready(function () {
-        $('#recButton').click(function () {
-          if ($('#recButton').hasClass('notRec')) {
-            $('#recButton').removeClass("notRec");
-            $('#recButton').addClass("Rec");
-            enableMicrophone();
-          } else {
-            $('#recButton').removeClass("Rec");
-            $('#recButton').addClass("notRec");
-            stopRecording();
-          }
-        });
-      });
+      function logMessage(message) {
+        const logContainer = document.getElementById("log");
+        logContainer.innerHTML += `<p>${message}</p>`;
+      }
+
+      function logError(message, error) {
+        const logContainer = document.getElementById("log");
+        logContainer.innerHTML += `<p><strong>Error:</strong> ${message} - ${error}</p>`;
+      }
     </script>
   </body>
 </html>
